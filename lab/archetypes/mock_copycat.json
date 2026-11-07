@@ -1,0 +1,13 @@
+{
+  "id": "mock_copycat",
+  "name": "Mock Copycat",
+  "kind": "prompt",
+  "color": "#7fb3ff",
+  "description": "Offline test archetype: goes through the full prompt pipeline but behaves like Copycat. Free.",
+  "api": "decisions",
+  "provider": "mock",
+  "model": "",
+  "historyWindow": 0,
+  "mockStrategy": "tft",
+  "system": "Start by cooperating. After that, do whatever your opponent did last round."
+}

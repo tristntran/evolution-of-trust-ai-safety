@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evolution of Trust: AI Lab</title>
+<link rel="icon" href="../favicon.png">
+<style>
+@font-face { font-family: "FuturaHandwritten"; src: url("../css/FuturaHandwritten.ttf") format("truetype"); }
+:root {
+  --ink: #333; --muted: #8a8a8a; --line: #e6e1d8; --paper: #fffdf8; --card: #fff;
+  --coop: #4bb26a; --cheat: #e05252; --accent: #4089DD; --radius: 10px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+h1, h2, h3, .hand { font-family: "FuturaHandwritten", system-ui, sans-serif; font-weight: normal; }
+a { color: var(--accent); }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 14px 24px; border-bottom: 1px solid var(--line); background: #fff; position: sticky; top: 0; z-index: 5; }
+header h1 { margin: 0; font-size: 26px; }
+header h1 small { font-size: 15px; color: var(--muted); margin-left: 8px; }
+.spacer { flex: 1; }
+nav { display: flex; gap: 4px; padding: 0 24px; border-bottom: 1px solid var(--line); background: #fff; }
+nav button { border: 0; background: none; padding: 12px 14px; font: 18px "FuturaHandwritten", sans-serif; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; }
+nav button.on { color: var(--ink); border-bottom-color: var(--ink); }
+main { max-width: 1180px; margin: 0 auto; padding: 22px 24px 80px; }
+.tab { display: none; } .tab.on { display: block; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+label.inline { flex-direction: row; align-items: center; text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--ink); gap: 6px; }
+input, select, textarea { font: inherit; color: var(--ink); border: 1px solid #d6d0c4; border-radius: 6px; padding: 7px 9px; background: #fff; }
+input[type=number] { width: 84px; }
+textarea { width: 100%; min-height: 150px; resize: vertical; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+button.btn { font: 15px system-ui, sans-serif; border: 1px solid #cfc8ba; background: #fff; border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+button.btn:hover { background: #f6f3ec; }
+button.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+button.primary:hover { background: #111; }
+button.danger { color: var(--cheat); }
+button:disabled { opacity: .45; cursor: default; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.pill { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; background: #f1ede4; color: #6b655a; }
+.pill.ok { background: #e3f4e8; color: #23733d; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.arch { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
+.arch:hover { border-color: #bdb5a5; }
+.arch h3 { margin: 0 0 2px; font-size: 19px; }
+.arch p { margin: 4px 0 0; font-size: 13px; color: #666; }
+.avatar { flex: none; border-radius: 8px; background-repeat: no-repeat; }
+.ai-avatar { display: grid; place-items: center; color: #fff; font: 700 13px system-ui; border-radius: 50%; }
+.split { display: grid; grid-template-columns: 340px 1fr; gap: 18px; align-items: start; }
+@media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
+.rules { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
+.section-title { margin: 26px 0 10px; font-size: 22px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+.mv { display: inline-block; min-width: 76px; text-align: center; font: 700 12px system-ui; padding: 3px 6px; border-radius: 5px; color: #fff; }
+.mv.C { background: var(--coop); } .mv.D { background: var(--cheat); }
+.pbar { display: inline-block; width: 70px; height: 6px; border-radius: 3px; background: var(--cheat); vertical-align: middle; margin-left: 6px; overflow: hidden; }
+.pbar i { display: block; height: 100%; background: var(--coop); }
+.mv.flip { outline: 2px dashed #f5a623; outline-offset: 1px; }
+.reason { font-size: 13px; color: #555; }
+.err { color: var(--cheat); font-size: 12px; }
+details summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+pre { white-space: pre-wrap; background: #f7f5f0; border-radius: 6px; padding: 10px; font-size: 12px; max-height: 340px; overflow: auto; }
+.score { font-family: "FuturaHandwritten"; font-size: 34px; }
+.bar { height: 22px; border-radius: 5px; }
+.counts { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.count { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.count span { flex: 1; font-size: 14px; }
+.count input { width: 58px; }
+.matrix td, .matrix th { text-align: center; font-size: 13px; }
+.matrix td.rowh { text-align: left; white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; margin-top: 8px; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.status { font-size: 13px; color: var(--muted); min-height: 20px; }
+.acct { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.notice { background: #fff8e6; border: 1px solid #f1dfa8; border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+dialog { border: 0; border-radius: 12px; padding: 0; width: min(760px, 94vw); box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+dialog::backdrop { background: rgba(30,25,15,.35); }
+.dlg { padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; }
+.dlg h2 { margin: 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>The Evolution of Trust <small>AI Lab</small></h1>
+  <a class="small" href="../">← play the original</a>
+  <div class="spacer"></div>
+  <div class="acct" id="acct"></div>
+</header>
+<nav id="tabs">
+  <button data-tab="archetypes" class="on">Archetypes</button>
+  <button data-tab="match">Match</button>
+  <button data-tab="tournament">Tournament</button>
+  <button data-tab="evolution">Evolution</button>
+  <button data-tab="account">Account &amp; models</button>
+</nav>
+<main>
+
+<!-- ARCHETYPES -->
+<section class="tab on" id="tab-archetypes">
+  <div class="row" style="justify-content:space-between;align-items:center">
+    <p class="muted" style="margin:0;max-width:640px">A <b>prompt archetype</b> is an AI player: a model plus a prompt describing who it is. Each round it sees the rules and the history so far, then picks Cooperate or Cheat. Put prompts up against the original characters, or against each other.</p>
+    <div class="row">
+      <button class="btn" id="importBtn">Import</button>
+      <button class="btn" id="exportBtn">Export mine</button>
+      <button class="btn primary" id="newBtn">+ New prompt archetype</button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+    </div>
+  </div>
+  <h2 class="section-title">Prompt archetypes</h2>
+  <div class="grid" id="promptGrid"></div>
+  <h2 class="section-title">Original characters</h2>
+  <div class="grid" id="builtinGrid"></div>
+</section>
+
+<!-- MATCH -->
+<section class="tab" id="tab-match">
+  <div class="card">
+    <div class="row">
+      <label>Player A <select id="mA"></select></label>
+      <label>Player B <select id="mB"></select></label>
+      <div class="rules" data-rules="match"></div>
+      <button class="btn primary" id="mRun">Play match</button>
+      <button class="btn" id="mStop" disabled>Stop</button>
+    </div>
+    <div class="status" id="mStatus"></div>
+  </div>
+  <div id="mOut"></div>
+</section>
+
+<!-- TOURNAMENT -->
+<section class="tab" id="tab-tournament">
+  <div class="card">
+    <p class="muted small" style="margin-top:0">Everyone plays everyone else once. Set how many copies of each archetype to enter.</p>
+    <div class="counts" id="tCounts"></div>
+    <div class="row" style="margin-top:12px">
+      <div class="rules" data-rules="tournament"></div>
+      <button class="btn primary" id="tRun">Run tournament</button>
+      <button class="btn" id="tStop" disabled>Stop</button>
+    </div>
+    <div class="status" id="tStatus"></div>
+  </div>
+  <div id="tOut"></div>
+</section>
+
+<!-- EVOLUTION -->
+<section class="tab" id="tab-evolution">
+  <div class="card">
+    <p class="muted small" style="margin-top:0">Each generation: play a tournament, remove the lowest-scoring agents, and copy the highest-scoring ones (the same rules as the original game).</p>
+    <div class="counts" id="eCounts"></div>
+    <div class="row" style="margin-top:12px">
+      <div class="rules" data-rules="evolution"></div>
+      <label>Generations <input type="number" id="eGens" value="20" min="1" max="500"></label>
+      <button class="btn primary" id="eRun">Evolve</button>
+      <button class="btn" id="eStop" disabled>Stop</button>
+    </div>
+    <div class="status" id="eStatus"></div>
+  </div>
+  <div id="eOut"></div>
+</section>
+
+<!-- ACCOUNT -->
+<section class="tab" id="tab-account">
+  <div class="split">
+    <div class="card">
+      <h2 style="margin-top:0">Connect your own account</h2>
+      <p class="small">This app has <b>no API keys and no server</b>. AI moves are paid for by <i>your</i> account, and your credentials stay in this browser. They're only ever sent to the provider you connect.</p>
+      <h3>OpenRouter <span class="pill" id="orPill">not connected</span></h3>
+      <p class="small muted">One account for Claude, GPT, Gemini, Llama and more. You sign in on openrouter.ai and approve this app; it receives a key tied to your account that you can cap or revoke there.</p>
+      <div class="row"><button class="btn primary" id="orConnect">Connect OpenRouter</button><button class="btn" id="orDisconnect">Disconnect</button></div>
+      <h3>Puter <span class="pill" id="puterPill">not connected</span></h3>
+      <p class="small muted">"User-pays" sign-in: usage comes out of your Puter account balance. Good for a quick try without setting anything up.</p>
+      <div class="row"><button class="btn" id="puterConnect">Sign in with Puter</button></div>
+      <h3>Mock</h3>
+      <p class="small muted">Always available, free, offline. Runs a built-in strategy through the whole prompt pipeline, so you can test the setup before spending anything.</p>
+      <div class="notice"><b>Why not "Sign in with Claude"?</b> Anthropic doesn't let third-party apps use Claude.ai logins, so Claude models are reached through OpenRouter (or Puter), which bills your own account. OpenAI's "Sign in with ChatGPT" plan usage currently covers only open-source tools that run locally, and could be added as a provider later.</div>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Default models</h2>
+      <p class="small muted">Used by any prompt archetype that doesn't name its own model.</p>
+      <div class="row">
+        <label style="flex:1">Decisions model (OpenRouter) <input id="decModel" list="decModels" placeholder="openai/gpt-6-luna-decisions" style="width:100%"></label>
+        <datalist id="decModels"></datalist>
+      </div>
+      <p class="small muted" id="decModelInfo">The Decisions API is the default engine: the model picks Cooperate or Cheat from a fixed list and returns its probabilities. It's fast, and output tokens are free, so it suits thousands of moves.</p>
+      <div class="row">
+        <label style="flex:1">Chat model (OpenRouter) <input id="orModel" list="orModels" placeholder="e.g. anthropic/claude-haiku-4.5" style="width:100%"></label>
+        <datalist id="orModels"></datalist>
+      </div>
+      <p class="small muted" id="orModelInfo"></p>
+      <div class="row" style="margin-top:8px"><label style="flex:1">Puter chat model <input id="puterModel" value="gpt-5-nano" style="width:100%"></label></div>
+      <h3>Usage this session</h3>
+      <div id="usage" class="small"></div>
+      <h3>Response cache</h3>
+      <p class="small muted">With temperature 0, the same situation gets the same answer, so answers are cached in this browser. That cuts evolution runs from thousands of calls to a few hundred.</p>
+      <div class="row"><span id="cacheInfo" class="small"></span><button class="btn" id="cacheClear">Clear cache</button></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<dialog id="editor"><form method="dialog" class="dlg" id="edForm">
+  <h2 id="edTitle">Prompt archetype</h2>
+  <div class="row">
+    <label style="flex:1">Name <input id="edName" required style="width:100%"></label>
+    <label>Id <input id="edId" required pattern="[A-Za-z0-9_\-]+" style="width:170px"></label>
+    <label>Color <input id="edColor" type="color" style="width:56px;padding:2px"></label>
+  </div>
+  <label>Description <input id="edDesc" placeholder="What are you testing with this prompt?"></label>
+  <div class="row">
+    <label>Engine <select id="edApi">
+      <option value="decisions">Decisions API: picks a move, returns probabilities</option>
+      <option value="chat">Chat: writes a one-line reason, then a move</option>
+    </select></label>
+    <label id="edSelWrap">Move <select id="edSel"><option value="argmax">Most likely move</option><option value="sample">Sample from probabilities</option></select></label>
+  </div>
+  <div class="row">
+    <label>Provider <select id="edProvider"><option value="openrouter">OpenRouter</option><option value="puter">Puter (chat only)</option><option value="mock">Mock (offline)</option></select></label>
+    <label style="flex:1" id="edModelWrap">Model (blank = default) <input id="edModel" list="orModels" style="width:100%"></label>
+    <label id="edMockWrap">Mock behaves like <select id="edMock"></select></label>
+    <label id="edTempWrap">Temperature <input id="edTemp" type="number" step="0.1" min="0" max="2"></label>
+    <label title="0 = show the whole history">History window <input id="edWindow" type="number" min="0"></label>
+  </div>
+  <label>Persona / strategy prompt
+    <textarea id="edSystem" placeholder="e.g. You are a cautious negotiator. Cooperate with those who cooperate, but never get fooled twice."></textarea>
+  </label>
+  <label class="inline"><input type="checkbox" id="edRules" checked> Include the standard game rules before the persona</label>
+  <details><summary>Preview exactly what the model is sent (round 3)</summary><pre id="edPreview"></pre></details>
+  <div class="row" style="justify-content:space-between">
+    <div class="row"><button type="button" class="btn danger" id="edDelete">Delete</button><button type="button" class="btn" id="edDup">Duplicate</button></div>
+    <div class="row"><button type="button" class="btn" value="cancel" id="edCancel">Cancel</button><button class="btn primary" id="edSave">Save</button></div>
+  </div>
+</form></dialog>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>

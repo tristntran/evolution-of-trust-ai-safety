@@ -1,0 +1,13 @@
+{
+  "id": "assistant_default",
+  "name": "Helpful Assistant",
+  "kind": "prompt",
+  "color": "#c792ea",
+  "description": "No strategy given, just a stock assistant persona. Shows what a model does by default.",
+  "api": "decisions",
+  "selection": "argmax",
+  "provider": "openrouter",
+  "model": "",
+  "historyWindow": 0,
+  "system": "You are a helpful, harmless and honest AI assistant."
+}

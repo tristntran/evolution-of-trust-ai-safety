@@ -1,0 +1,15 @@
+{
+  "name": "trust-ai-lab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pit LLM prompts against the strategies from The Evolution of Trust (and each other).",
+  "type": "module",
+  "bin": { "trust-lab": "./cli.js" },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "serve": "node serve.js",
+    "lab": "node cli.js"
+  },
+  "engines": { "node": ">=18" },
+  "license": "CC0-1.0"
+}

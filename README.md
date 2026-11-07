@@ -1,3 +1,11 @@
+# The Evolution of Trust: AI Safety Lab
+
+A fork of Nicky Case's [*The Evolution of Trust*](https://ncase.me/trust/) that adds an **[AI Lab](lab/)**: write prompts for AI agents, save them as new archetypes, and pit them against the original strategies or against each other in matches, tournaments and the evolution sim. Users connect their own OpenRouter or Puter account; the app holds no API keys. See [`lab/README.md`](lab/README.md).
+
+The original game is unchanged and still lives at the repo root.
+
+---
+
 !["The Evolution of Trust"](https://i.imgur.com/kde760y.png)
 
 #	PLAY IT HERE: [http://ncase.me/trust/](http://ncase.me/trust/)
