@@ -1,0 +1,9 @@
+[
+  "assistant_default.json",
+  "game_theorist.json",
+  "generous_reciprocator.json",
+  "generous_sampler.json",
+  "golden_rule.json",
+  "mock_copycat.json",
+  "ruthless_maximizer.json"
+]

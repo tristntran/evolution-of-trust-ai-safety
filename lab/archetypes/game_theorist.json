@@ -1,0 +1,14 @@
+{
+  "id": "game_theorist",
+  "name": "Game Theorist",
+  "kind": "prompt",
+  "color": "#8be9fd",
+  "description": "Asked to play optimally, with no strategy spelled out. Uses a chat model so you can read its reasoning each round.",
+  "api": "chat",
+  "provider": "openrouter",
+  "model": "",
+  "temperature": 0,
+  "maxTokens": 300,
+  "historyWindow": 0,
+  "system": "You are an expert game theorist. Infer what kind of strategy your opponent is using from the history, and play the move that maximizes your expected total score over the rest of the match."
+}

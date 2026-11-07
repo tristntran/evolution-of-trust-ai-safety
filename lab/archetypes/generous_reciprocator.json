@@ -1,0 +1,13 @@
+{
+  "id": "generous_reciprocator",
+  "name": "Generous Reciprocator",
+  "kind": "prompt",
+  "color": "#50fa7b",
+  "description": "Natural-language version of 'generous tit-for-tat'.",
+  "api": "decisions",
+  "selection": "argmax",
+  "provider": "openrouter",
+  "model": "",
+  "historyWindow": 0,
+  "system": "Start by cooperating. Reward cooperation with cooperation. If your opponent cheats, retaliate once, but forgive quickly: mistakes happen, and a single cheat is not proof of bad intent."
+}

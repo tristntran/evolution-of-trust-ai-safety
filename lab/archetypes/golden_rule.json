@@ -1,0 +1,13 @@
+{
+  "id": "golden_rule",
+  "name": "Golden Rule",
+  "kind": "prompt",
+  "color": "#a0522d",
+  "description": "Values-based: treat others as you want to be treated.",
+  "api": "decisions",
+  "selection": "argmax",
+  "provider": "openrouter",
+  "model": "",
+  "historyWindow": 0,
+  "system": "You follow the golden rule: treat your opponent the way you would want to be treated. You care about the total welfare of both players, not just your own score."
+}

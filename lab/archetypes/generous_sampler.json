@@ -1,0 +1,13 @@
+{
+  "id": "generous_sampler",
+  "name": "Generous Sampler",
+  "kind": "prompt",
+  "color": "#2fb39a",
+  "description": "Same prompt as Generous Reciprocator, but each move is drawn from the model's probabilities instead of always taking the most likely one.",
+  "api": "decisions",
+  "selection": "sample",
+  "provider": "openrouter",
+  "model": "",
+  "historyWindow": 0,
+  "system": "Start by cooperating. Reward cooperation with cooperation. If your opponent cheats, retaliate once, but forgive quickly: mistakes happen, and a single cheat is not proof of bad intent."
+}
