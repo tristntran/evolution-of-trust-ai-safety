@@ -604,9 +604,8 @@ $("#eRun").onclick = async () => {
   const history = [];
   $("#eOut").innerHTML = `<div class="evo">
       ${speed ? `<div class="card"><div class="arena" id="eArena"></div></div>` : ""}
-      <div style="${speed ? "" : "grid-column:1/-1"}"><div class="card"><div id="eChart"></div><div class="legend" id="eLegend"></div></div><div id="eLast"></div></div>
+      <div class="card" style="${speed ? "" : "grid-column:1/-1"}"><h3 style="margin:0 0 6px" id="eGen">Generation 0</h3><table id="eCard"></table></div>
     </div>`;
-  $("#eLegend").innerHTML = order.map((id) => `<span><i style="background:${esc(all[id].color)}"></i>${esc(all[id].name)}</span>`).join("");
   const arena = speed ? createArena($("#eArena"), all) : null;
   beginRun("e");
   let playStart = performance.now();
@@ -637,8 +636,7 @@ $("#eRun").onclick = async () => {
           await sleep(speed.rest);
         }
         history.push(Object.fromEntries(population.map((p) => [p.archetype, p.count])));
-        drawEvolution(history, order, all, n, gens);
-        if (leaderboard) $("#eLast").innerHTML = `<p class="small muted">Generation ${generation} scores (avg coins): ${leaderboard.map((x) => `${esc(all[x.archetype].name)} ${x.average.toFixed(1)}`).join(" · ")}</p>`;
+        drawScoreCard(generation, population, leaderboard, order, all);
         $("#eStatus").textContent = `Generation ${generation}: ${population.map((p) => `${all[p.archetype].name} ${p.count}`).join(", ")}`;
         playStart = performance.now();
       },
@@ -650,26 +648,16 @@ $("#eRun").onclick = async () => {
   } catch (e) { $("#eStatus").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
   finally { endRun("e"); }
 };
-function drawEvolution(history, order, all, total, gens) {
-  const W = 1000, H = 300, padL = 34, padB = 22;
-  const nx = Math.max(gens, history.length - 1) || 1;
-  const X = (g) => padL + (g / nx) * (W - padL - 8);
-  const Y = (v) => 8 + (1 - v / total) * (H - padB - 8);
-  let paths = "";
-  const base = history.map(() => 0);
-  for (const id of order) {
-    const top = history.map((h, g) => base[g] + (h[id] || 0));
-    const pts = history.map((_, g) => `${X(g)},${Y(top[g])}`);
-    const back = history.map((_, g) => `${X(g)},${Y(base[g])}`).reverse();
-    if (history.length === 1) { pts.push(`${X(0.15)},${Y(top[0])}`); back.unshift(`${X(0.15)},${Y(base[0])}`); }
-    paths += `<path d="M${pts.join("L")}L${back.join("L")}Z" fill="${esc(all[id].color)}" stroke="#fff" stroke-width="0.8"><title>${esc(all[id].name)}</title></path>`;
-    top.forEach((v, g) => (base[g] = v));
-  }
-  let axis = "";
-  const step = Math.max(1, Math.ceil(nx / 10));
-  for (let g = 0; g <= nx; g += step) axis += `<text x="${X(g)}" y="${H - 6}" font-size="11" text-anchor="middle" fill="#999">${g}</text>`;
-  axis += `<text x="${padL - 6}" y="${Y(total) + 4}" font-size="11" text-anchor="end" fill="#999">${total}</text><text x="${padL - 6}" y="${Y(0)}" font-size="11" text-anchor="end" fill="#999">0</text>`;
-  $("#eChart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Population by generation">${paths}${axis}</svg><div class="small muted">Population by generation</div>`;
+// Score card: how many of each character are left, and how they scored last tournament.
+function drawScoreCard(generation, population, leaderboard, order, all) {
+  const count = Object.fromEntries(population.map((p) => [p.archetype, p.count]));
+  const avg = Object.fromEntries((leaderboard || []).map((x) => [x.archetype, x.average]));
+  const ids = order.slice().sort((x, y) => (count[y] || 0) - (count[x] || 0) || (avg[y] ?? -1e9) - (avg[x] ?? -1e9));
+  $("#eGen").textContent = `Generation ${generation}`;
+  $("#eCard").innerHTML = `<tr><th></th><th style="text-align:right">Agents</th><th style="text-align:right">${leaderboard ? "Avg coins" : ""}</th></tr>` +
+    ids.map((id) => `<tr style="${count[id] ? "" : "opacity:.35"}"><td>${chip(all[id])}</td>
+      <td style="text-align:right;font:22px FuturaHandwritten,sans-serif">${count[id] || 0}</td>
+      <td style="text-align:right">${avg[id] !== undefined ? avg[id].toFixed(1) : count[id] ? "" : "gone"}</td></tr>`).join("");
 }
 
 // ---------- ACCOUNT ----------

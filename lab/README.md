@@ -62,7 +62,7 @@ Every move is a fresh, stateless call. Nothing carries over between calls; the p
 
 ## Evolution animation
 
-The Evolution tab shows the circle of agents from the original sandbox. Each generation, connections light up as matches are played, everyone's coins appear (green = top, about to be copied; red = bottom, about to be removed), the losers fade out, the winners' clones appear next to them, and the ring re-spaces. Pick a speed, or "Off" for the chart only. With AI players, connections flash live as each match finishes.
+The Evolution tab shows the circle of agents from the original sandbox. Each generation, connections light up as matches are played, everyone's coins appear (green = top, about to be copied; red = bottom, about to be removed), the losers fade out, the winners' clones appear next to them, and the ring re-spaces. A score card beside it lists how many of each character are left and their average coins in the last tournament. Pick a speed, or "Off" for the score card only. With AI players, connections flash live as each match finishes.
 
 ## Archetype format
 
