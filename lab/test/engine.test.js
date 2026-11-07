@@ -159,3 +159,26 @@ test("Decisions API: request shape, caching, argmax and reproducible sampling", 
   const coops = s1.rounds.filter((r) => r.a.intended === "COOPERATE").length;
   assert.ok(coops > 0 && coops < 10, `sampling should mix moves, got ${coops}/10`);
 });
+
+test("evolution tracks individuals: losers removed, clones placed next to their parents", async () => {
+  const pop = [{ archetype: "tft", count: 6 }, { archetype: "all_d", count: 6 }, { archetype: "all_c", count: 6 }];
+  const events = [];
+  await evolve(pop, ARCH, makeRules({ seed: 5 }), { generations: 4, makePlayer, onGeneration: (e) => events.push(e) });
+  for (const e of events.slice(1)) {
+    assert.equal(e.eliminated.length, 5);
+    assert.equal(e.born.length, 5);
+    assert.equal(e.ring.length, 18);
+    const uids = e.ring.map((a) => a.uid);
+    for (const dead of e.eliminated) assert.ok(!uids.includes(dead));
+    for (const b of e.born) {
+      const parent = e.before.find((a) => a.uid === b.parent);
+      assert.equal(parent.archetype, b.archetype);
+      // the clone sits after its parent, with only other clones in between
+      const pi = uids.indexOf(b.parent), ci = uids.indexOf(b.uid);
+      assert.ok(ci > pi && uids.slice(pi + 1, ci).every((u) => e.born.some((x) => x.uid === u)));
+    }
+    const counts = {};
+    for (const a of e.ring) counts[a.archetype] = (counts[a.archetype] || 0) + 1;
+    assert.deepEqual(counts, Object.fromEntries(e.population.map((p) => [p.archetype, p.count])));
+  }
+});

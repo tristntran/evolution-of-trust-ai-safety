@@ -434,6 +434,162 @@ function renderTournament(t, all) {
 }
 
 // ---------- EVOLUTION ----------
+// Timings (ms) per animation speed. "off" = chart only, no arena.
+const SPEEDS = {
+  slow: { sweep: 70, scores: 1700, eliminate: 800, reproduce: 1200, rest: 500 },
+  normal: { sweep: 28, scores: 900, eliminate: 450, reproduce: 750, rest: 200 },
+  fast: { sweep: 0, scores: 250, eliminate: 160, reproduce: 260, rest: 30 },
+};
+const sleep = (ms) => new Promise((r) => {
+  const t0 = performance.now();
+  const tick = () => (state.stop || performance.now() - t0 >= ms ? r() : setTimeout(tick, Math.min(50, ms)));
+  tick();
+});
+const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
+
+// The circle of agents from the original sandbox: each tournament lights up
+// the connections, then the bottom agents vanish and the top ones are copied
+// next to themselves, and everyone slides round to make room.
+function createArena(el, all) {
+  el.innerHTML = `<svg class="links" viewBox="0 0 100 100" preserveAspectRatio="none"></svg><div class="phase"></div>`;
+  const svg = el.querySelector("svg.links"), phase = el.querySelector(".phase");
+  const nodes = new Map(); // uid -> { el, body, coins, angle }
+  let lines = new Map(); // "uidA|uidB" -> <line>
+  let order = [];
+  const R = 40; // ring radius, % of arena width
+  const ringAngle = (i, n) => (i / n) * Math.PI * 2 - Math.PI / 2;
+
+  const peepHeight = (n) => {
+    const w = el.clientWidth || 480;
+    return Math.max(22, Math.min(74, (w * 2.3) / Math.max(n, 8)));
+  };
+  function makeNode(a, h) {
+    const arch = all[a.archetype];
+    const d = document.createElement("div");
+    d.className = "peep";
+    d.title = arch.name;
+    d.innerHTML = `<div class="body">${arch.kind === "builtin" ? avatar(arch, h) : avatar(arch, h * 0.7)}</div><div class="coins"></div>`;
+    el.appendChild(d);
+    return { el: d, body: d.querySelector(".body"), coins: d.querySelector(".coins"), angle: 0, builtin: arch.kind === "builtin" };
+  }
+  function place(node) {
+    const c = Math.cos(node.angle), s = Math.sin(node.angle);
+    node.el.style.left = `${50 + c * R}%`;
+    node.el.style.top = `${50 + s * R}%`;
+    const k = (el.clientWidth || 480) / 500; // offsets from the original 500px canvas
+    node.coins.style.left = `${-c * 44 * k}px`; // label sits on the inside of the ring
+    node.coins.style.top = `${(-s * 50 - 18) * k}px`;
+    // Peeps face the middle of the circle, like the original.
+    if (node.builtin) node.body.classList.toggle("mirror", c >= 0);
+  }
+  const pos = (uid) => {
+    const a = nodes.get(uid).angle;
+    return [50 + Math.cos(a) * R, 50 + Math.sin(a) * R];
+  };
+  function drawLinks() {
+    lines = new Map();
+    const ns = "http://www.w3.org/2000/svg";
+    svg.textContent = "";
+    if (order.length > 70) return; // too many to draw usefully
+    for (let i = 0; i < order.length; i++)
+      for (let j = i + 1; j < order.length; j++) {
+        const [x1, y1] = pos(order[i]), [x2, y2] = pos(order[j]);
+        const l = document.createElementNS(ns, "line");
+        l.setAttribute("x1", x1); l.setAttribute("y1", y1); l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+        l.setAttribute("vector-effect", "non-scaling-stroke");
+        svg.appendChild(l);
+        lines.set(order[i] + "|" + order[j], l);
+        lines.set(order[j] + "|" + order[i], l);
+      }
+  }
+  const linesOf = (uid) => order.filter((o) => o !== uid).map((o) => lines.get(uid + "|" + o)).filter(Boolean);
+
+  return {
+    setPhase(title, sub = "") { phase.innerHTML = title ? `${esc(title)}${sub ? `<small>${esc(sub)}</small>` : ""}` : ""; },
+    // Lay out a ring instantly (generation 0).
+    set(ring) {
+      for (const n of nodes.values()) n.el.remove();
+      nodes.clear();
+      const h = peepHeight(ring.length);
+      order = ring.map((a) => a.uid);
+      ring.forEach((a, i) => { const n = makeNode(a, h); n.angle = ringAngle(i, ring.length); place(n); nodes.set(a.uid, n); });
+      drawLinks();
+    },
+    // A match just finished (live, while AI players are thinking).
+    flash(a, b) {
+      const l = lines.get(a + "|" + b);
+      if (!l) return;
+      l.classList.add("hot");
+      setTimeout(() => l.classList.remove("hot"), 220);
+    },
+    // Light up each agent's connections in turn, like the original's "play" step.
+    async sweep(ms) {
+      if (!ms || !lines.size) return;
+      const stepBy = order.length > 30 ? 2 : 1;
+      for (let i = 0; i < order.length && !state.stop; i += stepBy) {
+        const hot = [...linesOf(order[i]), ...(stepBy > 1 && order[i + 1] ? linesOf(order[i + 1]) : [])];
+        hot.forEach((l) => l.classList.add("hot"));
+        await sleep(ms);
+        hot.forEach((l) => l.classList.remove("hot"));
+      }
+    },
+    showScores(coins, worst, best) {
+      for (const [uid, n] of nodes) {
+        n.coins.textContent = coins[uid] ?? "";
+        n.el.classList.toggle("worst", worst.includes(uid));
+        n.el.classList.toggle("best", best.includes(uid));
+      }
+      el.classList.add("scored");
+    },
+    hideScores() {
+      el.classList.remove("scored");
+      for (const n of nodes.values()) n.el.classList.remove("worst", "best");
+    },
+    async eliminate(uids, ms) {
+      for (const uid of uids) {
+        const n = nodes.get(uid);
+        if (!n) continue;
+        for (const l of linesOf(uid)) l.remove();
+        n.el.style.setProperty("--tween", `${ms}ms`);
+        n.el.style.transform = `translate(${Math.random() * 20 - 10}px, ${Math.random() * 20 - 10}px) rotate(${Math.random() * 30 - 15}deg)`;
+        n.el.classList.add("dying");
+      }
+      await sleep(ms);
+      for (const uid of uids) { nodes.get(uid)?.el.remove(); nodes.delete(uid); }
+      order = order.filter((u) => !uids.includes(u));
+    },
+    // Clones appear beside their parent, then everyone slides to even spacing.
+    async reproduce(born, ring, ms) {
+      const h = peepHeight(ring.length);
+      for (const b of born) {
+        const n = makeNode(b, h);
+        n.angle = (nodes.get(b.parent)?.angle ?? 0) + 0.1;
+        n.el.classList.add("newborn");
+        place(n);
+        nodes.set(b.uid, n);
+      }
+      order = ring.map((a) => a.uid);
+      el.classList.add("moving");
+      await frame();
+      for (const b of born) { const n = nodes.get(b.uid); n.el.style.setProperty("--tween", `${Math.min(ms, 400)}ms`); n.el.classList.remove("newborn"); }
+      const from = order.map((u) => nodes.get(u).angle), to = order.map((_, i) => ringAngle(i, order.length));
+      const t0 = performance.now();
+      for (;;) {
+        const t = ms > 0 ? Math.min(1, (performance.now() - t0) / ms) : 1;
+        const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // ease in-out
+        order.forEach((u, i) => { const n = nodes.get(u); n.angle = from[i] + (to[i] - from[i]) * e; place(n); });
+        if (t >= 1 || state.stop) break;
+        await frame();
+      }
+      order.forEach((u, i) => { const n = nodes.get(u); n.angle = to[i]; place(n); });
+      // Resize everyone to fit the new population size.
+      for (const a of ring) { const n = nodes.get(a.uid); n.body.innerHTML = avatar(all[a.archetype], n.builtin ? h : h * 0.7); }
+      drawLinks();
+      el.classList.remove("moving");
+    },
+  };
+}
+
 $("#eRun").onclick = async () => {
   const all = byId();
   const pop = readCounts("#eCounts");
@@ -443,22 +599,51 @@ $("#eRun").onclick = async () => {
   if (err) { $("#eStatus").innerHTML = `<span class="err">${esc(err)}</span>`; return; }
   if (!confirmCost(updateEstimates().ec)) return;
   const gens = Number($("#eGens").value) || 20;
+  const speed = SPEEDS[$("#eSpeed").value] || null;
   const order = pop.map((p) => p.archetype);
   const history = [];
-  $("#eOut").innerHTML = `<div class="card" style="margin-top:14px"><div id="eChart"></div><div class="legend" id="eLegend"></div></div><div id="eLast"></div>`;
+  $("#eOut").innerHTML = `<div class="evo">
+      ${speed ? `<div class="card"><div class="arena" id="eArena"></div></div>` : ""}
+      <div style="${speed ? "" : "grid-column:1/-1"}"><div class="card"><div id="eChart"></div><div class="legend" id="eLegend"></div></div><div id="eLast"></div></div>
+    </div>`;
   $("#eLegend").innerHTML = order.map((id) => `<span><i style="background:${esc(all[id].color)}"></i>${esc(all[id].name)}</span>`).join("");
+  const arena = speed ? createArena($("#eArena"), all) : null;
   beginRun("e");
+  let playStart = performance.now();
   try {
     await evolve(pop, all, currentRules(), {
       generations: gens, makePlayer: factory(), shouldStop: () => state.stop,
-      onMatch: (m, d, total, g) => { if (d % 10 === 0 || d === total) $("#eStatus").textContent = `Generation ${g}: match ${d} of ${total}…`; },
-      onGeneration: ({ generation, population, leaderboard }) => {
+      onMatch: (m, d, total, g) => {
+        if (d === 1) arena?.setPhase(`Generation ${g}`, "playing…");
+        arena?.flash(m.a, m.b);
+        if (d % 10 === 0 || d === total) $("#eStatus").textContent = `Generation ${g}: match ${d} of ${total}…`;
+      },
+      onGeneration: async (ev) => {
+        const { generation, population, leaderboard } = ev;
+        if (arena && generation === 0) arena.set(ev.ring);
+        if (arena && generation > 0 && !state.stop) {
+          // 1. play: if the tournament was instant (no AI players), replay it as a sweep so you can see it
+          if (performance.now() - playStart < 600) { arena.setPhase(`Generation ${generation}`, "playing…"); await arena.sweep(speed.sweep); }
+          // 2. scores, with the worst and best marked
+          const best = ev.born.map((b) => b.parent);
+          arena.setPhase("");
+          arena.showScores(ev.coins, ev.eliminated, best);
+          await sleep(speed.scores);
+          // 3. eliminate the bottom
+          await arena.eliminate(ev.eliminated, speed.eliminate);
+          // 4. reproduce the top
+          arena.hideScores();
+          await arena.reproduce(ev.born, ev.ring, speed.reproduce);
+          await sleep(speed.rest);
+        }
         history.push(Object.fromEntries(population.map((p) => [p.archetype, p.count])));
         drawEvolution(history, order, all, n, gens);
         if (leaderboard) $("#eLast").innerHTML = `<p class="small muted">Generation ${generation} scores (avg coins): ${leaderboard.map((x) => `${esc(all[x.archetype].name)} ${x.average.toFixed(1)}`).join(" · ")}</p>`;
         $("#eStatus").textContent = `Generation ${generation}: ${population.map((p) => `${all[p.archetype].name} ${p.count}`).join(", ")}`;
+        playStart = performance.now();
       },
     });
+    arena?.setPhase("");
     const last = history[history.length - 1];
     const alive = Object.keys(last);
     $("#eStatus").textContent = alive.length === 1 ? `${all[alive[0]].name} took over the whole population.` : state.stop ? `Stopped after ${history.length - 1} generations.` : `Finished ${history.length - 1} generations. No single archetype has taken over yet.`;

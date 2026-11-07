@@ -147,33 +147,61 @@ export async function playTournament(entrants, rules, { makePlayer, onMatch, kee
 // population: [{ archetype: id, count }], archetypes: { id -> archetype }.
 // Each generation mirrors the original: play a tournament, remove the bottom
 // `selection` agents, clone the top `selection` agents.
+//
+// Agents are tracked as individuals sitting in a ring (like the circle of
+// peeps in the original), so a UI can animate who was eliminated and who was
+// copied. Clones are inserted next to their parent, as in js/sims/Tournament.js.
+// onGeneration may return a promise; evolve waits for it (so a UI can animate
+// each step before the next generation starts).
 export async function evolve(population, archetypes, rules, { generations = 10, makePlayer, onGeneration, onMatch, shouldStop } = {}) {
-  let pop = population.map((p) => ({ ...p })).filter((p) => p.count > 0);
+  const order = population.filter((p) => p.count > 0).map((p) => p.archetype);
+  let serial = 0;
+  let ring = [];
+  for (const p of population)
+    for (let k = 0; k < p.count; k++) ring.push({ uid: `${p.archetype}#${serial++}`, archetype: p.archetype });
+  const countsOf = (r) => {
+    const c = Object.fromEntries(order.map((id) => [id, 0]));
+    for (const a of r) c[a.archetype]++;
+    return order.filter((id) => c[id] > 0).map((id) => ({ archetype: id, count: c[id] }));
+  };
+
+  let pop = countsOf(ring);
   const history = [snapshot(pop, 0)];
-  onGeneration?.({ generation: 0, population: pop.map((p) => ({ ...p })), leaderboard: null });
+  await onGeneration?.({ generation: 0, population: pop.map((p) => ({ ...p })), leaderboard: null, ring: ring.map((a) => ({ ...a })) });
 
   for (let g = 1; g <= generations; g++) {
     if (shouldStop?.()) break;
-    const entrants = [];
-    for (const p of pop)
-      for (let k = 0; k < p.count; k++) entrants.push({ agentId: `${p.archetype}#${k}`, archetype: archetypes[p.archetype] });
+    const entrants = ring.map((a) => ({ agentId: a.uid, archetype: archetypes[a.archetype] }));
 
     const t = await playTournament(entrants, rules, {
       makePlayer, keepTranscripts: false, tag: `gen${g}`,
       onMatch: onMatch && ((m, d, n) => onMatch(m, d, n, g)),
     });
+    const coins = Object.fromEntries(t.agents.map((a) => [a.agentId, a.coins]));
 
     // Random tie-breaking like the original (shuffle, then stable sort by coins).
     const rng = rngFrom(rules.seed, "select", g);
-    const sorted = shuffle(t.agents.slice(), rng).sort((a, b) => a.coins - b.coins);
+    const sorted = shuffle(ring.slice(), rng).sort((a, b) => coins[a.uid] - coins[b.uid]);
     const k = Math.min(rules.selection, Math.floor(sorted.length / 2));
-    const counts = Object.fromEntries(pop.map((p) => [p.archetype, p.count]));
-    for (const a of sorted.slice(0, k)) counts[a.archetype]--;
-    for (const a of sorted.slice(sorted.length - k)) counts[a.archetype]++;
-    pop = pop.map((p) => ({ archetype: p.archetype, count: counts[p.archetype] })).filter((p) => p.count > 0);
+    const eliminated = sorted.slice(0, k);
+    const parents = sorted.slice(sorted.length - k);
 
+    const before = ring.map((a) => ({ ...a }));
+    const dead = new Set(eliminated.map((a) => a.uid));
+    ring = ring.filter((a) => !dead.has(a.uid));
+    const born = [];
+    for (const parent of parents) {
+      const child = { uid: `${parent.archetype}#${serial++}`, archetype: parent.archetype, parent: parent.uid };
+      ring.splice(ring.findIndex((a) => a.uid === parent.uid) + 1, 0, child);
+      born.push(child);
+    }
+
+    pop = countsOf(ring);
     history.push(snapshot(pop, g, t.leaderboard));
-    onGeneration?.({ generation: g, population: pop.map((p) => ({ ...p })), leaderboard: t.leaderboard });
+    await onGeneration?.({
+      generation: g, population: pop.map((p) => ({ ...p })), leaderboard: t.leaderboard,
+      before, coins, eliminated: eliminated.map((a) => a.uid), born: born.map((a) => ({ ...a })), ring: ring.map((a) => ({ ...a })),
+    });
     if (pop.length <= 1) break; // one archetype has taken over
   }
   return { history, final: pop };

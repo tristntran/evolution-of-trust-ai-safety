@@ -50,6 +50,20 @@ Credentials are stored only in that user's browser (`localStorage`) and sent onl
 
 **Chat.** Any OpenRouter/Puter chat model writes a one-line reason, then a move. Slower and pricier, but you can read *why* it played what it did.
 
+## What the model sees each move
+
+Every move is a fresh, stateless call. Nothing carries over between calls; the prompt rebuilds the whole picture each time:
+
+- **System / `game_rules`**: the rules and payoffs (plus the noise and match-length lines, if they apply).
+- **Persona / `your_persona_and_strategy`**: the archetype's prompt.
+- **User / `situation`**: every round of *the current match* so far ("Round 1: you COOPERATE, opponent CHEAT", …), both running totals, and which round it is now.
+
+`historyWindow: 0` (the default for every shipped archetype) means the full match history is always included. A match is the whole relationship with that opponent: as in the original game, players start each match fresh and don't know who they're facing, so nothing from games against *other* opponents (or earlier generations) is carried in. Chat archetypes see past moves but not their own past one-line reasons. Open "what the model saw" under any move in the Match tab to see the exact payload.
+
+## Evolution animation
+
+The Evolution tab shows the circle of agents from the original sandbox. Each generation, connections light up as matches are played, everyone's coins appear (green = top, about to be copied; red = bottom, about to be removed), the losers fade out, the winners' clones appear next to them, and the ring re-spaces. Pick a speed, or "Off" for the chart only. With AI players, connections flash live as each match finishes.
+
 ## Archetype format
 
 ```json

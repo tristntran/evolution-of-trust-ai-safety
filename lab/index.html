@@ -81,6 +81,27 @@ dialog { border: 0; border-radius: 12px; padding: 0; width: min(760px, 94vw); bo
 dialog::backdrop { background: rgba(30,25,15,.35); }
 .dlg { padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; }
 .dlg h2 { margin: 0; }
+/* evolution arena: the circle of peeps from the original game */
+.evo { display: grid; grid-template-columns: minmax(280px, 500px) 1fr; gap: 18px; align-items: start; margin-top: 14px; }
+@media (max-width: 900px) { .evo { grid-template-columns: 1fr; } }
+.arena { position: relative; width: 100%; aspect-ratio: 1; }
+.arena svg.links { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.arena svg.links line { stroke: #d9d2c4; stroke-width: 1; opacity: .5; transition: opacity .25s, stroke .25s; }
+.arena svg.links line.hot { stroke: #555; opacity: .9; stroke-width: 1.6; transition: none; }
+.arena.moving svg.links { opacity: 0; }
+.arena .phase { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; font: 26px "FuturaHandwritten", sans-serif; color: #555; pointer-events: none; }
+.arena .phase small { display: block; font-size: 15px; color: var(--muted); }
+.peep { position: absolute; left: 0; top: 0; width: 0; height: 0; transition: transform var(--tween, .6s) ease-in-out, opacity var(--tween, .6s); }
+.peep .body { position: absolute; transform: translate(-50%, -62%); }
+.peep .body.mirror { transform: translate(-50%, -62%) scaleX(-1); }
+.peep .coins { position: absolute; transform: translate(-50%, -50%); font: 16px "FuturaHandwritten", sans-serif; color: #444; white-space: nowrap; opacity: 0; transition: opacity .2s; }
+.arena.scored .peep .coins { opacity: 1; }
+.peep.worst .coins { color: var(--cheat); }
+.peep.best .coins { color: #23733d; }
+.peep.worst .body { filter: drop-shadow(0 0 4px rgba(224,82,82,.9)); }
+.peep.best .body { filter: drop-shadow(0 0 4px rgba(75,178,106,.9)); }
+.peep.dying { opacity: 0; }
+.peep.newborn { opacity: 0; }
 </style>
 </head>
 <body>
@@ -154,6 +175,12 @@ dialog::backdrop { background: rgba(30,25,15,.35); }
     <div class="row" style="margin-top:12px">
       <div class="rules" data-rules="evolution"></div>
       <label>Generations <input type="number" id="eGens" value="20" min="1" max="500"></label>
+      <label>Animation <select id="eSpeed">
+        <option value="slow">Slow: watch each step</option>
+        <option value="normal" selected>Normal</option>
+        <option value="fast">Fast</option>
+        <option value="off">Off: chart only</option>
+      </select></label>
       <button class="btn primary" id="eRun">Evolve</button>
       <button class="btn" id="eStop" disabled>Stop</button>
     </div>
